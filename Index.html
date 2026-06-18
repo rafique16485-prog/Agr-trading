@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Flow Strategy Execution Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --neon-green: #22c55e;
+            --neon-red: #ef4444;
+            --neon-blue: #3b82f6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: #f1f5f9;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-field {
+            background: #334155;
+            border: 1px solid #475569;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .status-pill {
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-2">Money Flow <span class="text-blue-500">Strategy</span></h1>
+                <p class="text-slate-400">Institutional Volume Tracking (Accuracy: 70%+)</p>
+            </div>
+            <div class="flex gap-4">
+                <div class="glass-card px-4 py-2 rounded-xl border border-blue-500/30 flex items-center gap-3">
+                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm font-semibold">Live Simulation Active</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-2 space-y-6">
+                <div class="glass-card p-6 rounded-2xl shadow-xl">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold">Execution Visualizer</h2>
+                        <div class="flex bg-slate-800 p-1 rounded-lg">
+                            <button onclick="updateScenario('CE')" id="btnCE" class="px-4 py-1 rounded-md text-sm font-bold bg-green-600 text-white transition-all">CALL (CE)</button>
+                            <button onclick="updateScenario('PE')" id="btnPE" class="px-4 py-1 rounded-md text-sm font-bold text-slate-400 hover:text-white transition-all">PUT (PE)</button>
+                        </div>
+                    </div>
+
+                    <p class="text-sm text-slate-400 mb-4" id="scenarioDesc">
+                        Institutional buying tab confirm hoti hai jab price VWAP ke upar sustain kare aur Volume increase ho.
+                    </p>
+
+                    <div class="chart-container">
+                        <canvas id="strategyChart"></canvas>
+                    </div>
+                    
+                    <div class="mt-4 grid grid-cols-2 gap-4">
+                        <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                            <span class="text-xs text-slate-400 uppercase block mb-1">Entry Signal</span>
+                            <span id="signalText" class="text-green-500 font-bold">VWAP Crossover + High Vol</span>
+                        </div>
+                        <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                            <span class="text-xs text-slate-400 uppercase block mb-1">Recommended Strike</span>
+                            <span class="text-blue-400 font-bold">ATM (At-The-Money)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-2xl">
+                    <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                        <span>&#128203;</span> Step-by-Step Validation
+                    </h3>
+                    <p class="text-sm text-slate-400 mb-4">Trade lene se pehle in 4 points ko check karein. Agar sab "YES" hain, tabhi entry karein.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="flex items-center gap-3 p-3 bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-700 transition">
+                            <input type="checkbox" class="w-5 h-5 accent-blue-500">
+                            <span class="text-sm">Price is above/below VWAP (5m Candle Close)</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-700 transition">
+                            <input type="checkbox" class="w-5 h-5 accent-blue-500">
+                            <span class="text-sm">Volume is higher than previous 3 candles</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-700 transition">
+                            <input type="checkbox" class="w-5 h-5 accent-blue-500">
+                            <span class="text-sm">Option Chain (OI) confirms the Support/Resist</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-700 transition">
+                            <input type="checkbox" class="w-5 h-5 accent-blue-500">
+                            <span class="text-sm">Strike Selected is ATM or ITM (No OTM)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="glass-card p-6 rounded-2xl border-t-4 border-blue-500">
+                    <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                        <span>&#128181;</span> Premium Calculator
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Buy Price (Premium ₹)</label>
+                            <input type="number" id="buyPrice" value="100" class="input-field" oninput="calculateTrade()">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-3 bg-red-900/20 border border-red-500/30 rounded-xl">
+                                <span class="text-[10px] text-red-400 uppercase block">Stop Loss (12%)</span>
+                                <span id="slPrice" class="text-xl font-bold text-red-500">₹88.00</span>
+                            </div>
+                            <div class="p-3 bg-green-900/20 border border-green-500/30 rounded-xl">
+                                <span class="text-[10px] text-green-400 uppercase block">Target (1:2 RR)</span>
+                                <span id="targetPrice" class="text-xl font-bold text-green-500">₹124.00</span>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 italic">Rules: 10-12% SL max per trade in options buying.</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-2xl">
+                    <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-yellow-500">
+                        <span>&#9888;</span> Pro Rules
+                    </h3>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex gap-2">
+                            <span class="text-blue-500 font-bold">•</span>
+                            <span>9:45 AM se pehle trade na karein.</span>
+                        </li>
+                        <li class="flex gap-2">
+                            <span class="text-blue-500 font-bold">•</span>
+                            <span>Sideways market (Whipsaw) mein capital bachayein.</span>
+                        </li>
+                        <li class="flex gap-2">
+                            <span class="text-blue-500 font-bold">•</span>
+                            <span>Trailing SL use karein jab Target 1 hit ho jaye.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="glass-card p-6 rounded-2xl text-center">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Market Sentiment</h4>
+                    <div class="relative w-32 h-16 mx-auto mb-2 overflow-hidden">
+                        <div class="absolute inset-0 bg-slate-700 rounded-t-full"></div>
+                        <div id="gaugeNeedle" class="absolute bottom-0 left-1/2 w-1 h-14 bg-white origin-bottom -rotate-45 transition-transform duration-1000"></div>
+                    </div>
+                    <span id="sentimentLabel" class="text-sm font-bold text-green-500">MODERATELY BULLISH</span>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-8 pt-8 border-t border-slate-800 text-center text-slate-500 text-xs">
+            <p>Disclaimer: Options trading high risk hai. Is setup ka use paper trading ke baad karein.</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- Core Application State ---
+        let chart = null;
+        let currentMode = 'CE';
+
+        // --- Scenarios Data ---
+        const dataScenarios = {
+            'CE': {
+                labels: ['9:30', '9:45', '10:00', '10:15', '10:30', '10:45', '11:00'],
+                price: [22050, 22060, 22045, 22090, 22120, 22150, 22180],
+                vwap: [22070, 22070, 22070, 22075, 22080, 22085, 22090],
+                desc: 'Bullish Setup: 10:15 candle ne VWAP ke upar breakout diya hai with Volume confirmation.',
+                color: '#22c55e',
+                sentiment: 'BULLISH',
+                rotate: 45
+            },
+            'PE': {
+                labels: ['9:30', '9:45', '10:00', '10:15', '10:30', '10:45', '11:00'],
+                price: [22150, 22140, 22160, 22110, 22080, 22050, 22020],
+                vwap: [22130, 22130, 22130, 22125, 22120, 22115, 22110],
+                desc: 'Bearish Setup: 10:15 candle ne VWAP ke niche breakdown diya hai. Put buying preferred.',
+                color: '#ef4444',
+                sentiment: 'BEARISH',
+                rotate: -45
+            }
+        };
+
+        // --- Chart Initialization ---
+        function initChart() {
+            const ctx = document.getElementById('strategyChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dataScenarios['CE'].labels,
+                    datasets: [
+                        {
+                            label: 'Spot Price',
+                            data: dataScenarios['CE'].price,
+                            borderColor: dataScenarios['CE'].color,
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            tension: 0.3,
+                            pointBackgroundColor: dataScenarios['CE'].color
+                        },
+                        {
+                            label: 'VWAP Line',
+                            data: dataScenarios['CE'].vwap,
+                            borderColor: '#3b82f6',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8' } }
+                    },
+                    scales: {
+                        y: { 
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Interaction Logic ---
+        function updateScenario(mode) {
+            currentMode = mode;
+            const config = dataScenarios[mode];
+            
+            // UI Updates
+            document.getElementById('scenarioDesc').textContent = config.desc;
+            document.getElementById('signalText').textContent = mode === 'CE' ? 'VWAP Crossover (Buy CE)' : 'VWAP Breakdown (Buy PE)';
+            document.getElementById('signalText').className = mode === 'CE' ? 'text-green-500 font-bold' : 'text-red-500 font-bold';
+            
+            // Button styles
+            const btnCE = document.getElementById('btnCE');
+            const btnPE = document.getElementById('btnPE');
+            if(mode === 'CE') {
+                btnCE.className = 'px-4 py-1 rounded-md text-sm font-bold bg-green-600 text-white';
+                btnPE.className = 'px-4 py-1 rounded-md text-sm font-bold text-slate-400';
+            } else {
+                btnPE.className = 'px-4 py-1 rounded-md text-sm font-bold bg-red-600 text-white';
+                btnCE.className = 'px-4 py-1 rounded-md text-sm font-bold text-slate-400';
+            }
+
+            // Sentiment Update
+            document.getElementById('gaugeNeedle').style.transform = `translateX(-50%) rotate(${config.rotate}deg)`;
+            document.getElementById('sentimentLabel').textContent = config.sentiment;
+            document.getElementById('sentimentLabel').className = mode === 'CE' ? 'text-sm font-bold text-green-500' : 'text-sm font-bold text-red-500';
+
+            // Chart Update
+            chart.data.datasets[0].data = config.price;
+            chart.data.datasets[0].borderColor = config.color;
+            chart.data.datasets[0].pointBackgroundColor = config.color;
+            chart.data.datasets[1].data = config.vwap;
+            chart.update();
+        }
+
+        function calculateTrade() {
+            const buy = parseFloat(document.getElementById('buyPrice').value);
+            if(isNaN(buy)) return;
+
+            const sl = buy - (buy * 0.12);
+            const target = buy + (buy * 0.24); // 1:2 Reward relative to 12% Risk
+
+            document.getElementById('slPrice').textContent = `₹${sl.toFixed(2)}`;
+            document.getElementById('targetPrice').textContent = `₹${target.toFixed(2)}`;
+        }
+
+        // --- Initialization ---
+        window.onload = () => {
+            initChart();
+            calculateTrade();
+        };
+
+    </script>
+</body>
+</html>
